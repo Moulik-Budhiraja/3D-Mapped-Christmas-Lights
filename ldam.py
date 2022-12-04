@@ -454,7 +454,7 @@ class Visualize:
 
 
 if __name__ == "__main__":
-    with open('positions3D.json', 'r') as f:
+    with open('sample-positions.json', 'r') as f:
         positions = json.load(f)
 
     Position.from_json(positions)
