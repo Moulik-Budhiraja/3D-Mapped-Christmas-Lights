@@ -445,7 +445,7 @@ class ldamManager:
                     "ldam": ldam[:5000]
                 })
 
-            self.upload(ldam[5000:], host, add=True)
+            self.upload(host, ldam[5000:], add=True)
 
 
 class Visualize:
