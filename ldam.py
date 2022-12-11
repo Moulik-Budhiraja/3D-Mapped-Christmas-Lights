@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
-import json
 import numpy as np
 import typing
 import time
 import colorsys
+import requests
 
 
 class HSV:
@@ -14,6 +14,69 @@ class HSV:
 
     def __repr__(self):
         return f"HSV({self.h}, {self.s}, {self.v})"
+
+    @property
+    def h(self) -> int:
+        """Hue
+
+        Returns:
+            int: Hue
+        """
+        return self._h
+
+    @h.setter
+    def h(self, value: int):
+        """Hue
+
+        Args:
+            value (int): Hue
+        """
+        if value < 0 or value > 360:
+            raise ValueError("Hue must be between 0 and 360")
+
+        self._h = value
+
+    @property
+    def s(self) -> int:
+        """Saturation
+
+        Returns:
+            int: Saturation
+        """
+        return self._s
+
+    @s.setter
+    def s(self, value: int):
+        """Saturation
+
+        Args:
+            value (int): Saturation
+        """
+        if value < 0 or value > 100:
+            raise ValueError("Saturation must be between 0 and 100")
+
+        self._s = value
+
+    @property
+    def v(self) -> int:
+        """Value
+
+        Returns:
+            int: Value
+        """
+        return self._v
+
+    @v.setter
+    def v(self, value: int):
+        """Value
+
+        Args:
+            value (int): Value
+        """
+        if value < 0 or value > 100:
+            raise ValueError("Value must be between 0 and 100")
+
+        self._v = value
 
     def to_rgb(self) -> typing.Tuple[int, int, int]:
         """Convert this HSV object to an RGB tuple
@@ -138,7 +201,7 @@ class Position:
         return cls.positions
 
     @classmethod
-    def in_area(cls, x1: int, y1: int, z1: int, x2: int, y2: int, z2: int, color: HSV) -> dict[int, 'Position']:
+    def in_area(cls, x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> dict[int, 'Position']:
         """Get all LEDs in a given area
 
         Args:
@@ -324,7 +387,7 @@ class ldamManager:
         Returns:
             str: The ldam string
         """
-        with open(path, "r"):
+        with open(path, "r") as f:
             return f.read()
 
     def write(self, path: str, ldam: str):
@@ -349,7 +412,40 @@ class ldamManager:
         if len(tasks) > self.max_tasks:
             raise ValueError(f"Too many tasks! Max tasks: {self.max_tasks}")
 
-        return "|".join([task.compile() for task in tasks])
+        return "|".join([task.compile() for task in tasks]) + "|"
+
+    def upload(self, host: str, ldam: str, add=False):
+        """Uploads a list of Task objects to an ldam server
+
+        Args:
+            ldam (str): The ldam string
+            host (str): The host of the ldam server
+        """
+
+        if len(ldam) <= 5000:
+            if add:
+                requests.post(host + "/add", data={
+                    "ldam": ldam
+                })
+            else:
+                requests.post(host + "/loop", data={
+                    "ldam": ldam
+                })
+
+            return
+
+        else:
+            if add:
+                requests.post(host + "/add", data={
+                    "ldam": ldam[:5000]
+                })
+            else:
+
+                requests.post(host + "/loop", data={
+                    "ldam": ldam[:5000]
+                })
+
+            self.upload(ldam[5000:], host, add=True)
 
 
 class Visualize:
@@ -387,6 +483,9 @@ class Visualize:
         self.ax.set_xlim(mid_x - max_range, mid_x + max_range)
         self.ax.set_ylim(mid_z - max_range, mid_z + max_range)
         self.ax.set_zlim(mid_y - max_range, mid_y + max_range)
+
+        # Increase size of points
+        self.ax.tick_params(axis='both', which='major', labelsize=10)
 
         self.start_time = time.time() * 1000
         max_time = max([task.delay for task in self.tasks])
@@ -435,7 +534,13 @@ class Visualize:
             y = [p.y for p in self.positions.values()]
             z = [p.z for p in self.positions.values()]
 
-            c = [HSV.scale_rgb_to_1(p.current_color.to_rgb()) for p in self.positions.values()]
+            c = [(*HSV.scale_rgb_to_1(p.current_color.to_rgb()), max(p.current_color.v / 100, 0.3))
+                 for p in self.positions.values()]
+
+            for color in c:
+                if color[0] > 1 or color[1] > 1 or color[2] > 1:
+                    print(c)
+                    break
 
             self.ax.scatter(x, z, y, color=c, marker='o')
 
@@ -447,30 +552,9 @@ class Visualize:
             self.ax.set_ylim(mid_z - max_range, mid_z + max_range)
             self.ax.set_zlim(mid_y - max_range, mid_y + max_range)
 
+            self.ax.tick_params(axis='both', which='major', labelsize=10)
+
             plt.pause(0.010)
 
             if not plt.fignum_exists(fig.number):
                 break
-
-
-if __name__ == "__main__":
-    with open('sample-positions.json', 'r') as f:
-        positions = json.load(f)
-
-    Position.from_json(positions)
-
-    tasks: Task = []
-
-    for position in Position.all().values():
-        tasks.append(Task(position, HSV(190, 100, 100),
-                     (Position.max_y() - position.y) * 5, HSV(0, 100, 100), 1000))
-        tasks.append(Task(position, HSV(0, 100, 100),
-                     (Position.max_y() - position.y) * 5 + 1000, HSV(0, 0, 0), 1000))
-
-    tasks.append(Task(Position.get(49), HSV(0, 0, 0), Position.get(49).y * 5 + 1500))
-
-    ldam = ldamManager()
-    ldam.write("test.ldam", ldam.format(tasks))
-
-    vis = Visualize(tasks, Position.all())
-    vis.show()

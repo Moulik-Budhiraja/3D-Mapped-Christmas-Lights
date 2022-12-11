@@ -112,6 +112,11 @@ class Task {
         this->fadeToColor = fadeToColor;
         this->fadeTime = fadeTime;
     }
+
+    Task copy() {
+        Task t = Task(pos, color, delay, fadeToColor, fadeTime);
+        return t;
+    }
 };
 
 class Tree {
@@ -155,7 +160,7 @@ class Tree {
         return count;
     }
 
-    void updateColorFades(double dt) {
+    void updateColorFades(double dt, CRGB leds[]) {
         for (int i = 0; i < NUM_LEDS; i++) {
             LED& led = ledPositions[i];
 
@@ -180,19 +185,53 @@ class Tree {
             CRGB toRGB;
             hsv2rgb_rainbow(toHSV, toRGB);
 
+            CHSV current(led.color.h, led.color.s, led.color.v);
+            CRGB currentRGB;
+            hsv2rgb_rainbow(current, currentRGB);
+
             // Fade from fromRGB to toRGB
 
             uint8_t progress = (int)(led.fadeProgress / led.fadeTime * 255);
 
+            // if (led.pos == 17) {
+            //     Serial.print("Color: ");
+            //     Serial.print(currentRGB.r);
+            //     Serial.print(", ");
+            //     Serial.print(currentRGB.g);
+            //     Serial.print(", ");
+            //     Serial.print(currentRGB.b);
+            //     Serial.print(" | Color After: ");
+            // }
+
             CRGB color = fadeTowardColor(fromRGB, toRGB, progress);
 
-            // Back to HSV
+            leds[led.pos] = color;
+
+            // if (led.pos == 17) {
+            //     // Serial.print("Color: ");
+            //     Serial.print(color.r);
+            //     Serial.print(", ");
+            //     Serial.print(color.g);
+            //     Serial.print(", ");
+            //     Serial.println(color.b);
+            // }
+
+            // // Back to HSV
 
             CHSV hsv = rgb2hsv_approximate(color);
 
             led.color.h = hsv.h;
             led.color.s = hsv.s;
             led.color.v = hsv.v;
+
+            // if (led.pos == 17) {
+            //     Serial.print("  HSV Color: ");
+            //     Serial.print(led.color.h);
+            //     Serial.print(", ");
+            //     Serial.print(led.color.s);
+            //     Serial.print(", ");
+            //     Serial.println(led.color.v);
+            // }
 
             if (led.fadeProgress >= led.fadeTime) {
                 led.fadeTime = -1;
@@ -253,6 +292,8 @@ class Tree {
             delta = delta * amount / 255;
             cur -= delta;
         }
+
+        // cur = (int)(cur * (1 - (amount / 255)) + target * (amount / 255));
     }
 
     CRGB fadeTowardColor(CRGB& cur, const CRGB& target, uint8_t amount) {
@@ -354,6 +395,52 @@ class TaskManager {
 Tree tree;
 TaskManager taskManager;
 
+String currentldam =
+    "0,134,255,255,1160,0,255,255,1000|0,0,255,255,2160,0,0,0,1000|1,134,255,"
+    "255,1245,0,255,255,1000|1,0,255,255,2245,0,0,0,1000|2,134,255,255,1240,0,"
+    "255,255,1000|2,0,255,255,2240,0,0,0,1000|3,134,255,255,1270,0,255,255,"
+    "1000|3,0,255,255,2270,0,0,0,1000|4,134,255,255,1095,0,255,255,1000|4,0,"
+    "255,255,2095,0,0,0,1000|5,134,255,255,1280,0,255,255,1000|5,0,255,255,"
+    "2280,0,0,0,1000|6,134,255,255,1200,0,255,255,1000|6,0,255,255,2200,0,0,0,"
+    "1000|7,134,255,255,1365,0,255,255,1000|7,0,255,255,2365,0,0,0,1000|8,134,"
+    "255,255,1360,0,255,255,1000|8,0,255,255,2360,0,0,0,1000|9,134,255,255,"
+    "1255,0,255,255,1000|9,0,255,255,2255,0,0,0,1000|10,134,255,255,1045,0,255,"
+    "255,1000|10,0,255,255,2045,0,0,0,1000|11,134,255,255,975,0,255,255,1000|"
+    "11,0,255,255,1975,0,0,0,1000|12,134,255,255,1020,0,255,255,1000|12,0,255,"
+    "255,2020,0,0,0,1000|13,134,255,255,960,0,255,255,1000|13,0,255,255,1960,0,"
+    "0,0,1000|14,134,255,255,770,0,255,255,1000|14,0,255,255,1770,0,0,0,1000|"
+    "15,134,255,255,920,0,255,255,1000|15,0,255,255,1920,0,0,0,1000|16,134,255,"
+    "255,1110,0,255,255,1000|16,0,255,255,2110,0,0,0,1000|17,134,255,255,865,0,"
+    "255,255,1000|17,0,255,255,1865,0,0,0,1000|18,134,255,255,865,0,255,255,"
+    "1000|18,0,255,255,1865,0,0,0,1000|19,134,255,255,820,0,255,255,1000|19,0,"
+    "255,255,1820,0,0,0,1000|20,134,255,255,710,0,255,255,1000|20,0,255,255,"
+    "1710,0,0,0,1000|21,134,255,255,580,0,255,255,1000|21,0,255,255,1580,0,0,0,"
+    "1000|22,134,255,255,530,0,255,255,1000|22,0,255,255,1530,0,0,0,1000|23,"
+    "134,255,255,570,0,255,255,1000|23,0,255,255,1570,0,0,0,1000|24,134,255,"
+    "255,625,0,255,255,1000|24,0,255,255,1625,0,0,0,1000|25,134,255,255,695,0,"
+    "255,255,1000|25,0,255,255,1695,0,0,0,1000|26,134,255,255,625,0,255,255,"
+    "1000|26,0,255,255,1625,0,0,0,1000|27,134,255,255,765,0,255,255,1000|27,0,"
+    "255,255,1765,0,0,0,1000|28,134,255,255,835,0,255,255,1000|28,0,255,255,"
+    "1835,0,0,0,1000|29,134,255,255,560,0,255,255,1000|29,0,255,255,1560,0,0,0,"
+    "1000|30,134,255,255,845,0,255,255,1000|30,0,255,255,1845,0,0,0,1000|31,"
+    "134,255,255,865,0,255,255,1000|31,0,255,255,1865,0,0,0,1000|32,134,255,"
+    "255,670,0,255,255,1000|32,0,255,255,1670,0,0,0,1000|33,134,255,255,530,0,"
+    "255,255,1000|33,0,255,255,1530,0,0,0,1000|34,134,255,255,420,0,255,255,"
+    "1000|34,0,255,255,1420,0,0,0,1000|35,134,255,255,565,0,255,255,1000|35,0,"
+    "255,255,1565,0,0,0,1000|36,134,255,255,425,0,255,255,1000|36,0,255,255,"
+    "1425,0,0,0,1000|37,134,255,255,485,0,255,255,1000|37,0,255,255,1485,0,0,0,"
+    "1000|38,134,255,255,350,0,255,255,1000|38,0,255,255,1350,0,0,0,1000|39,"
+    "134,255,255,380,0,255,255,1000|39,0,255,255,1380,0,0,0,1000|40,134,255,"
+    "255,425,0,255,255,1000|40,0,255,255,1425,0,0,0,1000|41,134,255,255,295,0,"
+    "255,255,1000|41,0,255,255,1295,0,0,0,1000|42,134,255,255,340,0,255,255,"
+    "1000|42,0,255,255,1340,0,0,0,1000|43,134,255,255,310,0,255,255,1000|43,0,"
+    "255,255,1310,0,0,0,1000|44,134,255,255,170,0,255,255,1000|44,0,255,255,"
+    "1170,0,0,0,1000|45,134,255,255,245,0,255,255,1000|45,0,255,255,1245,0,0,0,"
+    "1000|46,134,255,255,225,0,255,255,1000|46,0,255,255,1225,0,0,0,1000|47,"
+    "134,255,255,265,0,255,255,1000|47,0,255,255,1265,0,0,0,1000|48,134,255,"
+    "255,105,0,255,255,1000|48,0,255,255,1105,0,0,0,1000|49,134,255,255,0,0,"
+    "255,255,1000|49,0,255,255,1000,0,0,0,1000|49,0,0,0,2925,0,0,0,-1|";
+
 void setup() {
     Serial.begin(115200);
 
@@ -373,6 +460,8 @@ void setup() {
     server.on("/area", HandleArea);
     server.on("/on", OnSequence);
     server.on("/off", OffSequence);
+    server.on("/loop", ldamLoop);
+    server.on("add", addldam);
     server.onNotFound(HandleNotFound);
 
     server.begin();
@@ -398,21 +487,107 @@ void loop() {
     taskManager.updateTaskDelays(loopDelta / 1000.0);
     taskManager.runTasks(tree);
 
-    // Fade LEDs
-
-    tree.updateColorFades(loopDelta / 1000.0);
-
     // Apply Changes
     tree.applyChanges(leds);
+
+    // Fade LEDs
+    tree.updateColorFades(loopDelta / 1000.0, leds);
 
     FastLED.show();
 
     if (tree.on) {
         if (taskManager.taskCount == 0) {
-            Serial.println("Running Animation Frame");
-            TempAnimation();
+            // Serial.println("Running Animation Frame");
+            // TempAnimation();
+            parseldam();
         }
     }
+}
+
+/**
+ * @brief Parses the current ldam string into a list of tasks that are then
+ * added to the task manager
+ *
+ * ldam string format:
+ * pos,h,s,v,delay,fade_h,fade_s,fade_v,1000|pos,h,s,v,delay,fade_h,fade_s,fade_v,1000|...
+ * Note: any value can be an "r" to indicate a random value between 0 and 255
+ * and "k" to indicate a random value between 0 and 1000
+ *
+ */
+void parseldam() {
+    // Serial.println("Parsing ldam string");
+    Task task;
+    int valType = 0;  // 0 = pos, 1 = h, 2 = s, 3 = v, 4 = delay, 5 = fade_h, 6
+                      // = fade_s, 7 = fade_v, 8 = fadeTime
+    int val = 0;
+    int totalTasks = 0;
+    for (int i = 0; i < currentldam.length(); i++) {
+        if (currentldam.charAt(i) == ',') {
+            switch (valType) {
+                case 0:
+                    task.pos = val;
+                    break;
+                case 1:
+                    task.color.h = val;
+                    break;
+                case 2:
+                    task.color.s = val;
+                    break;
+                case 3:
+                    task.color.v = val;
+                    break;
+                case 4:
+                    task.delay = val;
+                    break;
+                case 5:
+                    task.fadeToColor.h = val;
+                    break;
+                case 6:
+                    task.fadeToColor.s = val;
+                    break;
+                case 7:
+                    task.fadeToColor.v = val;
+                    break;
+                case 8:
+                    task.fadeTime = val;
+                    break;
+            }
+
+            valType++;
+            val = 0;
+        } else if (currentldam.charAt(i) == '|') {
+            if (valType == 8) {
+                task.fadeTime = val;
+            }
+
+            taskManager.addTask(task.copy());
+            totalTasks++;
+
+            valType = 0;
+            val = 0;
+
+        } else if (currentldam.charAt(i) == 'r') {
+            val = random8();
+        } else if (currentldam.charAt(i) == 'k') {
+            val = random16(1000);
+        } else {
+            val = val * 10 + (currentldam.charAt(i) - '0');
+        }
+    }
+
+    // Serial.println("Finished parsing ldam string");
+    // Serial.print("Added ");
+    // Serial.print(totalTasks);
+    // Serial.println(" tasks to task manager");
+
+    // Serial.print("Longest delay: ");
+    // int longest = 0;
+    // for (int i = 0; i < taskManager.taskCount; i++) {
+    //     if (taskManager.tasks[i].delay > longest) {
+    //         longest = taskManager.tasks[i].delay;
+    //     }
+    // }
+    // Serial.println(longest);
 }
 
 void HandleSingleLED() {
@@ -518,6 +693,10 @@ void OnSequence() {
     int dy = 10;
     int passes = 2;
 
+    if (tree.on) {
+        return;
+    }
+
     for (int y = 0; y < 400 * passes; y += dy) {
         for (int* pos : ledPos) {
             if (pos[1] >= y % 400 && pos[1] <= y % 400 + dy) {
@@ -537,6 +716,10 @@ void OnSequence() {
 void OffSequence() {
     int dy = 10;
     int passes = 2;
+
+    if (!tree.on) {
+        return;
+    }
 
     tree.on = false;
 
@@ -568,6 +751,45 @@ void TempAnimation() {
             }
         }
     }
+}
+
+/**
+ * @brief Updates the ldam string
+ *
+ */
+void ldamLoop() {
+    for (int i = 0; i < server.args(); i++) {
+        if (server.argName(i) == "ldam") {
+            currentldam = server.arg(i);
+
+            Serial.println("Got ldam: " + currentldam);
+
+            server.send(200, "text/html", "OK");
+
+            if (!tree.on) {
+                OnSequence();
+            }
+
+            return;
+        }
+    }
+
+    server.send(400, "text/html", "Bad Request missing ldam");
+}
+
+void addldam() {
+    for (int i = 0; i < server.args(); i++) {
+        if (server.argName(i) == "ldam") {
+            currentldam += server.arg(i);
+
+            Serial.println("Got ldam: " + currentldam);
+
+            server.send(200, "text/html", "OK");
+            return;
+        }
+    }
+
+    server.send(400, "text/html", "Bad Request missing ldam");
 }
 
 void HandleNotFound() { server.send(404, "text/plain", "Not found"); }
